@@ -2,6 +2,6 @@ from typing import TypedDict
 
 
 class ResumeJDState(TypedDict):
-    # Raw inputs
-    resume_text: str
+    resume_file_path: str   # PDF file ka path
+    resume_text: str        # PDF se nikala hua text
     jd_text: str
