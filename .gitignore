@@ -1,5 +1,11 @@
-venv/
-.env
-__pycache__/
-sandbox/
-uploads/
+# Backend
+Job-Fit Matcher Agent/venv/
+Job-Fit Matcher Agent/.env
+Job-Fit Matcher Agent/sandbox/
+Job-Fit Matcher Agent/uploads/
+Job-Fit Matcher Agent/__pycache__/
+Job-Fit Matcher Agent/**/__pycache__/
+
+# Frontend
+job-fit-frontend/node_modules/
+job-fit-frontend/dist/
