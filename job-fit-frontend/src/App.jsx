@@ -1,122 +1,134 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
+import axios from "axios";
+import "./App.css";
+
+const API_URL = "http://127.0.0.1:8000";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [resumeFile, setResumeFile] = useState(null);
+  const [jobTitle, setJobTitle] = useState("");
+  const [jdText, setJdText] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!resumeFile || !jdText.trim()) {
+      setError("Resume aur Job Description dono zaroori hain.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("resume", resumeFile);
+    formData.append("job_title", jobTitle);
+    formData.append("jd_text", jdText);
+
+    try {
+      const response = await axios.post(`${API_URL}/analyze`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setResult(response.data);
+    } catch (err) {
+      console.error(err);
+      setError("Kuch ghalat ho gaya. Backend chal raha hai check kar lein.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div className="container">
+      <h1>Job-Fit Matcher</h1>
+
+      <form onSubmit={handleSubmit} className="form">
+        <label>
+          Resume (PDF)
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setResumeFile(e.target.files[0])}
+          />
+        </label>
+
+        <label>
+          Job Title (optional)
+          <input
+            type="text"
+            placeholder="e.g. Python Developer"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+          />
+        </label>
+
+        <label>
+          Job Description / Context
+          <textarea
+            rows={8}
+            placeholder="Poora job post yahan paste karein (LinkedIn se copy bhi kar sakte hain)"
+            value={jdText}
+            onChange={(e) => setJdText(e.target.value)}
+          />
+        </label>
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Analyzing..." : "Analyze"}
         </button>
-      </section>
+      </form>
 
-      <div className="ticks"></div>
+      {error && <p className="error">{error}</p>}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {result && <ResultCard result={result} />}
+    </div>
+  );
 }
 
-export default App
+function ResultCard({ result }) {
+  const hasMatched = result.matched_skills && result.matched_skills.length > 0;
+  const hasMissingQuick =
+    result.missing_skills_quick && result.missing_skills_quick.length > 0;
+
+  return (
+    <div className="result">
+      <h2>Overall Fit Score: {result.overall_fit_score}/100</h2>
+      <p className="sub-score">Semantic Score: {result.semantic_score}%</p>
+
+      {hasMatched && (
+        <Section title="✅ Matched Skills" items={result.matched_skills} />
+      )}
+
+      {hasMissingQuick && (
+        <Section
+          title="⚠️ Missing Skills (quick check)"
+          items={result.missing_skills_quick}
+        />
+      )}
+
+      <Section title="💪 Strengths" items={result.strengths} />
+      <Section title="❌ Missing Skills / Gaps" items={result.missing_skills} />
+      <Section title="💡 Suggestions" items={result.suggestions} />
+    </div>
+  );
+}
+
+function Section({ title, items }) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="section">
+      <h3>{title}</h3>
+      <ul>
+        {items.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
